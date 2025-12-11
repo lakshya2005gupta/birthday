@@ -1,434 +1,362 @@
-// src/App.jsx
-import React, { useRef, useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import "./App.css";
 
-// ---------- Hook: useInView for autoplay videos ----------
-function useInView(options = {}) {
-  const ref = useRef(null);
-  const [inView, setInView] = useState(false);
-
+// --- small hook: autoplay muted videos when in view ---
+function useAutoPlayOnView(ref) {
   useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
+    const el = ref.current;
+    if (!el) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          setInView(entry.isIntersecting);
+          if (entry.isIntersecting) {
+            el.play().catch(() => {});
+          } else {
+            el.pause();
+          }
         });
       },
-      {
-        threshold: 0.4,
-        ...options,
-      }
+      { threshold: 0.6 }
     );
 
-    observer.observe(node);
-    return () => observer.unobserve(node);
-  }, [options]);
-
-  return [ref, inView];
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref]);
 }
 
-// ---------- Component: AutoPlayVideo (muted, on scroll) ----------
-function AutoPlayVideo({ src, poster }) {
-  const videoRef = useRef(null);
-  const [containerRef, inView] = useInView();
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (inView) {
-      const playPromise = video.play();
-      if (playPromise && playPromise.catch) playPromise.catch(() => {});
-    } else {
-      video.pause();
-    }
-  }, [inView]);
-
+function AutoPlayVideo({ src, poster, caption, onClick }) {
+  const ref = useRef(null);
+  useAutoPlayOnView(ref);
   return (
-    <div ref={containerRef} className="video-card">
-      <video
-        ref={videoRef}
-        muted
-        loop
-        playsInline
-        poster={poster}
-        className="video-element"
-      >
-        <source src={src} type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
+    <div className="moment-card" onClick={onClick}>
+      <div className="moment-video-wrap">
+        <video
+          ref={ref}
+          src={src}
+          poster={poster}
+          playsInline
+          muted
+          loop
+          className="moment-video"
+        />
+      </div>
+      <p className="moment-caption">{caption}</p>
     </div>
   );
 }
 
-// ---------- Main App ----------
+function Lightbox({ item, onClose, onPrev, onNext }) {
+  if (!item) return null;
+  return (
+    <div className="lightbox-backdrop" onClick={onClose}>
+      <div className="lightbox" onClick={(e) => e.stopPropagation()}>
+        <div className="lightbox-media">
+          {item.type === "image" ? (
+            <img src={item.src} alt={item.caption} />
+          ) : (
+            <video
+              src={item.src}
+              controls
+              autoPlay
+              muted
+              className="lightbox-video"
+            />
+          )}
+        </div>
+        <div className="lightbox-caption">{item.caption}</div>
+        <div className="lightbox-actions">
+          <button onClick={onPrev}>⟵ Prev</button>
+          <button onClick={onNext}>Next ⟶</button>
+          <button onClick={onClose}>Close ✕</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- YOUR MEDIA (adjust paths if needed) ---------- */
+
+const photos = [
+  {
+    src: "/images/photo1.jpg",
+    thumb: "/images/photo1.jpg",
+    caption: "You, being effortlessly pretty without even trying.",
+  },
+  {
+    src: "/images/photo2.jpg",
+    thumb: "/images/photo2.jpg",
+    caption: "We look dumb here. I’m still obsessed.",
+  },
+  {
+    src: "/images/photo3.jpg",
+    thumb: "/images/photo3.jpg",
+    caption: "One of those 'I could stay here forever' moments.",
+  },
+  {
+    src: "/images/photo4.jpg",
+    thumb: "/images/photo4.jpg",
+    caption: "Saving this one as a core memory.",
+  },
+];
+
+const videoMoments = [
+  {
+    src: "/videos/video1.mp4",
+    poster: "/videos/video1-thumb.jpg",
+    caption: "Your chaos on loop. Still my favourite view.",
+  },
+];
+
+const letterParagraphs = [
+  "Dear Ishaani,",
+  "I don’t know the exact moment when 'you’re fun to talk to' quietly turned into 'I can’t imagine my days without you', but somewhere between the late-night chats, your rants, your dumb jokes, and the way you say the most random things with full confidence — something in me just decided, 'Yeah, this is home now.'",
+  "You make ordinary days feel less heavy. You make stupid things feel special. You make me want to try harder — with myself, with us, with everything.",
+  "I know I’m not perfect. I overthink, say the wrong things, and sometimes don’t say what I should. But even in all that mess, one thing is stupidly clear: I want you in my life. Not just on the good days — especially on the bad ones.",
+  "Thank you for every laugh, every fight we came back from, every 'are you okay?', every 'I’m here.' You have no idea how much that has meant to me.",
+  "Happy Birthday, love. I’m ridiculously, unapologetically grateful that you exist — and even more grateful that somehow, out of everyone, I get to be the one who calls you mine.",
+  "With all my love,\nLakshya",
+];
+
 export default function App() {
-  const audioRef = useRef(null);
-  const [started, setStarted] = useState(false);
+  // "animation" -> only Ayush page visible
+  useEffect(() => {
+  function onMessage(e) {
+    if (!e.data) return;
+    if (e.data && e.data.type === 'animation-done') {
+      // move to main stage
+      setStage('main');
+    }
+  }
+  window.addEventListener('message', onMessage);
+  return () => window.removeEventListener('message', onMessage);
+}, []);
 
-  const handleBegin = () => {
-    if (!started && audioRef.current) {
-      const audio = audioRef.current;
-      // Original volume (1.0). Not touching it.
-      audio.loop = true;
-      const playPromise = audio.play();
-      if (playPromise && playPromise.catch) {
-        playPromise.catch(() => {
-          // If browser blocks it, user can tap again.
+  // "main" -> your React birthday site
+  const [stage, setStage] = useState("animation");
+  const [heroPhraseIndex, setHeroPhraseIndex] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+
+  const bgmRef = useRef(null);
+
+  const heroPhrases = [
+    "The safest kind of chaos.",
+    "The calm in my overthinking.",
+    "My favourite notification.",
+    "The person I’d still choose, again.",
+  ];
+
+  const allItems = [
+    ...photos.map((p) => ({ ...p, type: "image" })),
+    ...videoMoments.map((v) => ({ ...v, type: "video" })),
+  ];
+
+  // rotate hero subtitle
+  useEffect(() => {
+    const id = setInterval(
+      () => setHeroPhraseIndex((i) => (i + 1) % heroPhrases.length),
+      3500
+    );
+    return () => clearInterval(id);
+  }, []);
+
+  // control soft BGM based on stage: ONLY play when stage === "main"
+  useEffect(() => {
+    const audio = bgmRef.current;
+    if (!audio) return;
+
+    if (stage === "main") {
+      audio.currentTime = 0;
+      audio
+        .play()
+        .catch(() => {
+          /* autoplay blocked, fine */
         });
-      }
-      setStarted(true);
+    } else {
+      audio.pause();
     }
-    // Scroll to next section
-    const nextSection = document.getElementById("story-section");
-    if (nextSection) {
-      nextSection.scrollIntoView({ behavior: "smooth" });
-    }
-  };
+  }, [stage]);
 
-  // ---- Dummy data: replace with your actual content ----
-  const storyChapters = [
-    {
-      id: 1,
-      title: "The Day It All Began",
-      date: "DD/MM/YYYY",
-      location: "Somewhere You Both Know",
-      shortLine: "The first time my brain went: oh.",
-      detail:
-        "Write a detailed memory here. Make it specific: what she wore, what you felt, what was funny, what was awkward. Keep it honest.",
-      image: "/images/photo1.jpg",
-    },
-    {
-      id: 2,
-      title: "When You Ruined My Peace (Nicely)",
-      date: "DD/MM/YYYY",
-      location: "Chat / Call / College",
-      shortLine: "Suddenly you were the notification I cared about.",
-      detail:
-        "Another specific story. Don’t write generic ‘you’re perfect’ stuff. Write something only she would understand.",
-      image: "/images/photo2.jpg",
-    },
-    // Add more chapters...
-  ];
-
-  const galleryPhotos = [
-    {
-      id: 1,
-      image: "/images/photo3.jpg",
-      label: "This day.",
-      note: "Tell her what was going on in your head this exact moment.",
-    },
-    {
-      id: 2,
-      image: "/images/photo4.jpg",
-      label: "You being annoying.",
-      note: "A short, cute line about her being annoying but you loving it.",
-    },
-    // Add more photos...
-  ];
-
-  const videos = [
-    {
-      id: 1,
-      src: "/videos/video1.mp4", // Put in public/videos/
-      poster: "/images/video1-poster.jpg",
-    },
-    {
-      id: 2,
-      src: "/videos/video2.mp4",
-      poster: "/images/video2-poster.jpg",
-    },
-    // Add more videos...
-  ];
-
-  const notes = [
-    {
-      id: 1,
-      title: "Things I Don’t Say Enough",
-      note: "You being comfortable around me is my favourite flex.",
-    },
-    {
-      id: 2,
-      title: "Tiny Truth",
-      note: "You make my overthinking slightly less stupid.",
-    },
-    {
-      id: 3,
-      title: "Reminder",
-      note: "You don’t have to be perfect. I like you in the messy version too.",
-    },
-    // Add more notes...
-  ];
-
-  const futurePlans = [
-    {
-      id: 1,
-      title: "Sunset Date",
-      status: "Soon",
-      detail: "Pick a real place and time. Don’t be vague.",
-    },
-    {
-      id: 2,
-      title: "Cooking Disaster Night",
-      status: "Planned",
-      detail: "Make something together, even if it goes horribly wrong.",
-    },
-    {
-      id: 3,
-      title: "A Proper Chill Day",
-      status: "Someday",
-      detail: "No plans. Just you, me, food, and whatever we feel like.",
-    },
-    // Add more plans...
-  ];
+  const openLightboxPhoto = (idx) => setLightboxIndex(idx);
+  const openLightboxVideo = (idx) => setLightboxIndex(photos.length + idx);
+  const closeLightbox = () => setLightboxIndex(null);
+  const showPrev = () =>
+    setLightboxIndex((i) =>
+      i == null ? null : (i - 1 + allItems.length) % allItems.length
+    );
+  const showNext = () =>
+    setLightboxIndex((i) =>
+      i == null ? null : (i + 1) % allItems.length
+    );
 
   return (
-    <div className="page-root">
-      {/* Hidden audio element – no controls, original volume */}
-      <audio ref={audioRef} src="/audio/bgm.mp3" />
+    <div className="app-root">
+      <div className="bg-particles" />
 
-      <BackgroundDecor />
+      {/* your soft romantic bgm for MAIN stage only */}
+      <audio ref={bgmRef} src="/audio/bgm-main.mp3" loop />
 
-      <main className="page-content">
-        <HeroSection onBegin={handleBegin} />
-
-        <StorySection id="story-section" chapters={storyChapters} />
-
-        <GallerySection photos={galleryPhotos} />
-
-        <VideoSection videos={videos} />
-
-        <NotesSection notes={notes} />
-
-        <FuturePlansSection plans={futurePlans} />
-
-        <FinalSection />
-      </main>
-    </div>
-  );
-}
-
-// ---------- Visual Components ----------
-
-function BackgroundDecor() {
-  return (
-    <>
-      <div className="bg-orb orb-1" />
-      <div className="bg-orb orb-2" />
-      <div className="bg-orb orb-3" />
-    </>
-  );
-}
-
-function HeroSection({ onBegin }) {
-  return (
-    <section className="section hero-section">
-      <div className="hero-card">
-        <p className="hero-tag">For Ishaani 🎂</p>
-        <h1 className="hero-title">Happy Birthday, Ishaani</h1>
-        <p className="hero-subtitle">
-          Soft chaos, stupid jokes, overthinking and you — I wouldn’t trade it
-          for anything.
-        </p>
-
-        <button className="primary-btn" onClick={onBegin}>
-          Tap to Begin, Ishaani 💖
-        </button>
-
-        <p className="hero-hint">Make sure your sound is on 🔊</p>
-      </div>
-    </section>
-  );
-}
-
-function StorySection({ id, chapters }) {
-  const [openId, setOpenId] = useState(chapters[0]?.id ?? null);
-
-  return (
-    <section className="section" id={id}>
-      <div className="section-header">
-        <h2 className="section-title">Our Story, in Little Tickets</h2>
-        <p className="section-subtitle">
-          Tiny moments that turned into something way bigger than I expected.
-        </p>
-      </div>
-
-      <div className="ticket-list">
-        {chapters.map((chapter) => {
-          const isOpen = openId === chapter.id;
-          return (
-            <article
-              key={chapter.id}
-              className={`ticket-card ${isOpen ? "ticket-open" : ""}`}
-              onClick={() => setOpenId(chapter.id)}
-            >
-              <div className="ticket-main">
-                <div className="ticket-left">
-                  <p className="ticket-label">CHAPTER {chapter.id}</p>
-                  <h3 className="ticket-title">{chapter.title}</h3>
-                  <p className="ticket-short">{chapter.shortLine}</p>
-                  <div className="ticket-meta">
-                    <span>{chapter.date}</span>
-                    <span>•</span>
-                    <span>{chapter.location}</span>
-                  </div>
-                </div>
-                <div className="ticket-right">
-                  <span className="ticket-stamp">♥</span>
-                  <span className="ticket-stamp-text">Admit One</span>
-                </div>
-              </div>
-
-              {isOpen && (
-                <div className="ticket-polaroid">
-                  <div className="polaroid-frame">
-                    <img
-                      src={chapter.image}
-                      alt={chapter.title}
-                      className="polaroid-image"
-                    />
-                    <p className="polaroid-caption">{chapter.shortLine}</p>
-                  </div>
-                  <p className="ticket-detail">{chapter.detail}</p>
-                </div>
-              )}
-            </article>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function GallerySection({ photos }) {
-  const [activeId, setActiveId] = useState(photos[0]?.id ?? null);
-
-  return (
-    <section className="section">
-      <div className="section-header">
-        <h2 className="section-title">Tiny Frames, Big Feelings</h2>
-        <p className="section-subtitle">
-          Tap a polaroid. I’ll tell you why that moment matters to me.
-        </p>
-      </div>
-
-      <div className="polaroid-grid">
-        {photos.map((item) => {
-          const isActive = item.id === activeId;
-          return (
-            <button
-              key={item.id}
-              className={`polaroid-card ${isActive ? "polaroid-active" : ""}`}
-              onClick={() => setActiveId(item.id)}
-            >
-              <div className="polaroid-inner">
-                <img
-                  src={item.image}
-                  alt={item.label}
-                  className="polaroid-img"
-                />
-                <p className="polaroid-label">{item.label}</p>
-              </div>
-              {isActive && (
-                <p className="polaroid-note">
-                  {item.note || "Write something specific here."}
-                </p>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function VideoSection({ videos }) {
-  if (!videos || videos.length === 0) return null;
-
-  return (
-    <section className="section">
-      <div className="section-header">
-        <h2 className="section-title">Moments in Motion</h2>
-        <p className="section-subtitle">
-          Little clips that feel like you. They’ll play quietly as you scroll.
-        </p>
-      </div>
-
-      <div className="video-grid">
-        {videos.map((video) => (
-          <AutoPlayVideo
-            key={video.id}
-            src={video.src}
-            poster={video.poster}
-          />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function NotesSection({ notes }) {
-  return (
-    <section className="section">
-      <div className="section-header">
-        <h2 className="section-title">Things I Don’t Say Out Loud</h2>
-        <p className="section-subtitle">
-          Tap a card. Consider this my attempt at being slightly less emotionally
-          unavailable.
-        </p>
-      </div>
-
-      <div className="notes-grid">
-        {notes.map((item) => (
-          <details key={item.id} className="note-card">
-            <summary className="note-summary">{item.title}</summary>
-            <p className="note-body">{item.note}</p>
-          </details>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function FuturePlansSection({ plans }) {
-  return (
-    <section className="section">
-      <div className="section-header">
-        <h2 className="section-title">Stuff I Still Want To Do With You</h2>
-        <p className="section-subtitle">
-          Not promises. But things I genuinely want to make happen with you.
-        </p>
-      </div>
-
-      <div className="plans-list">
-        {plans.map((plan) => (
-          <div key={plan.id} className="plan-card">
-            <div className="plan-header">
-              <h3 className="plan-title">{plan.title}</h3>
-              <span className={`plan-status plan-${plan.status.toLowerCase()}`}>
-                {plan.status}
-              </span>
-            </div>
-            <p className="plan-detail">{plan.detail}</p>
+      <header className="top-nav">
+        <div className="brand">
+          <span className="brand-heart">💗</span>
+          <div>
+            <div className="brand-title">Ishaani’s Birthday</div>
+            <div className="brand-sub">Written in code by Lakshya</div>
           </div>
-        ))}
-      </div>
-    </section>
-  );
-}
+        </div>
+      </header>
 
-function FinalSection() {
-  return (
-    <section className="section final-section">
-      <div className="final-card">
-        <p className="final-line-top">If you reached here, that’s already a lot.</p>
-        <p className="final-line-main">
-          Thanks for being you. That’s my favorite part.
-        </p>
-        <p className="final-line-bottom">Happy Birthday, Ishaani 💐</p>
-      </div>
-    </section>
+      <main className="main">
+        {/* -------------------------------------------------
+           STAGE 1 – Ayush animation full-page
+        -------------------------------------------------- */}
+        {stage === "animation" && (
+          <section className="section section-animation" id="lights">
+            <p className="section-tag">Step 1</p>
+            <h2 className="section-title">Turn on the lights ✨</h2>
+            <p className="section-sub">
+              This is the dramatic part — lights, music, balloons, cake, story.
+              Play through everything inside this frame. When you’re done and
+              ready for the personal part, hit the button below.
+            </p>
+
+            <div className="animation-frame-wrap">
+              {/* IMPORTANT: folder is /animation, NOT /animations */}
+              <iframe
+                src="/animation/index.html" 
+                className="dramatic-frame"
+                title="Birthday animation"
+                
+              />
+            </div>
+
+            <p className="animation-hint">
+              If something looks stuck, click once inside the frame or reload
+              the page.
+            </p>
+
+            <div className="stage-button-row">
+              <button
+                className="primary-pill"
+                onClick={() => setStage("main")}
+              >
+                I’m done here, show me the rest ↓
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* -------------------------------------------------
+           STAGE 2 – Your main React birthday page
+        -------------------------------------------------- */}
+        {stage === "main" && (
+          <>
+            {/* hero */}
+            <section className="section hero-main" id="main-hero">
+              <div className="hero-text">
+                <p className="section-tag">For: Ishaani</p>
+                <h2 className="hero-title">
+                  Happy Birthday, Ishaani <span>🎂</span>
+                </h2>
+                <p className="hero-sub">{heroPhrases[heroPhraseIndex]}</p>
+                <p className="hero-body">
+                  This is the softer part — just us, the memories, and all the
+                  things I usually keep in my head instead of saying out loud.
+                </p>
+                <p className="hero-body small">
+                  Take your time and scroll slowly. None of this is going
+                  anywhere.
+                </p>
+              </div>
+
+              <div className="hero-replay">
+                <button
+                  className="ghost-pill"
+                  onClick={() => setStage("animation")}
+                >
+                  Replay the balloons & cake 🎈
+                </button>
+              </div>
+            </section>
+
+            {/* photos */}
+            <section className="section" id="memories">
+              <p className="section-tag">Memories</p>
+              <h2 className="section-title">Screenshots of us</h2>
+              <p className="section-sub">
+                Random frames where you probably had no idea how badly I was
+                falling for you in the background.
+              </p>
+
+              <div className="gallery-grid">
+                {photos.map((p, idx) => (
+                  <button
+                    key={idx}
+                    className="gallery-item"
+                    onClick={() => openLightboxPhoto(idx)}
+                  >
+                    <img src={p.thumb} alt={p.caption} />
+                    <span className="gallery-tag">memory</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* videos */}
+            <section className="section" id="videos">
+              <p className="section-tag">Moments in motion</p>
+              <h2 className="section-title">Your chaos on loop</h2>
+              <p className="section-sub">
+                These play quietly as you scroll. No sound here — just you
+                moving around the way my brain replays you.
+              </p>
+
+              <div className="moments-grid">
+                {videoMoments.map((v, idx) => (
+                  <AutoPlayVideo
+                    key={idx}
+                    src={v.src}
+                    poster={v.poster}
+                    caption={v.caption}
+                    onClick={() => openLightboxVideo(idx)}
+                  />
+                ))}
+              </div>
+            </section>
+
+            {/* letter */}
+            <section className="section" id="letter">
+              <p className="section-tag">From Lakshya</p>
+              <h2 className="section-title">Things I don’t say enough</h2>
+              <p className="section-sub">
+                Read this again on some random bad day. It’s not just a birthday
+                thing; I mean it on every normal, boring, stressful day too.
+              </p>
+
+              <div className="letter">
+                {letterParagraphs.map((para, idx) => (
+                  <p key={idx} className="letter-line">
+                    {para}
+                  </p>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+      </main>
+
+      <footer className="footer">
+        <span>Made with mildly concerning levels of love by Lakshya.</span>
+      </footer>
+
+      {lightboxIndex !== null && (
+        <Lightbox
+          item={allItems[lightboxIndex]}
+          onClose={closeLightbox}
+          onPrev={showPrev}
+          onNext={showNext}
+        />
+      )}
+    </div>
   );
 }
