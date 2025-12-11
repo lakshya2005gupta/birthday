@@ -2,243 +2,156 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Birthday Animation</title>
-
-  <!-- main animation stylesheet (keep original file name) -->
+  <title>Birthday Animation — Ayush</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="stylesheet.css" />
   <link rel="stylesheet" href="loading.css" />
-
+  <link rel="stylesheet" href="cake.less" />
   <style>
-    /* minimal overrides/ensures for full-viewport behaviour */
+    /* Ensure animation container fills the iframe cleanly and buttons at bottom center */
     html, body {
       height: 100%;
       margin: 0;
-      padding: 0;
       background: #000;
       font-family: 'Signika', sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
     }
-
-    /* container that holds everything and fills iframe */
-    .container {
-      position: relative;
-      width: 100%;
-      height: 100vh; /* important: fills iframe viewport */
-      overflow: hidden;
-      box-sizing: border-box;
-    }
-
-    /* dramatic initial black screen with centered button */
-    .dramatic-area {
+    .wrap {
+      height: 100%;
       display: flex;
-     align-items: flex-end;
-    justify-content: center;
-    height: 100vh;
-    padding-bottom: 60px;
-      background: #000;
-      z-index: 3000;
-    }
-
-    #turn_on,
-    #play,
-    #bannar_coming,
-    #balloons_flying,
-    #cake_fadein,
-    #light_candle,
-    #wish_message,
-    #story {
-      padding: 12px 20px;
-      border-radius: 8px;
-      background: #3f70bf;
-      color: #fff;
-      border: none;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-    }
-
-    /* animation-stage: the actual running area; hidden until we start */
-    .animation-stage {
-      position: absolute;
-      inset: 0;
-      display: none; /* will be revealed by JS */
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
       overflow: hidden;
-      z-index: 100;
     }
 
-    /* balloon-border image centered at top */
-    .balloon-border {
+    .control-panel {
       position: absolute;
-      top: 0;
       left: 50%;
       transform: translateX(-50%);
+      bottom: 32px;
+      z-index: 999;
+      display:flex;
+      gap: 12px;
+      align-items:center;
+      justify-content:center;
+      pointer-events:auto;
+    }
+
+    .control-panel .btn {
+      padding: 10px 18px;
+      border-radius: 8px;
+      background-color:#3b6fb0;
+      color:#fff;
+      border: 0;
+      cursor: pointer;
+      font-weight:700;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    }
+
+    /* a small frame for the original design area, maintain the balloon/cake layout */
+    .stage {
       width: 100%;
-      max-width: 1200px;
-      z-index: 10;
-      pointer-events:none;
+      height: 100%;
+      position: relative;
     }
 
-    /* each balloon container */
-    .balloons {
-      position: absolute;
-      width: 100px;
-      height: 183px;
-      background-size: 100px 183px;
-      background-repeat:no-repeat;
-      bottom: -200px;
-      pointer-events: auto;
-      z-index: 90;
-    }
+    /* make balloon-name appear centered in balloon */
+    .balloons { display:block; position:absolute; width:100px; height:180px; background-size:100px 180px; }
+    .balloon-name { position:absolute; top:52%; left:50%; transform:translate(-50%,-50%); font-weight:700; color:#8a2b2b; pointer-events:none; }
 
-    /* letter overlay per balloon */
-    .balloon-name {
-      position: absolute;
-      top: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 160px;
-      text-align: center;
-      pointer-events: none;
-      font-family: 'Signika', sans-serif;
-      font-size: 30px;
-      color: #BF4136;
-      text-shadow: 2px 2px 6px rgba(255,255,255,0.8);
-      display: none;
-      z-index: 120;
-      white-space: nowrap;
-    }
-    .balloon-name.show { display: block; }
-
-    /* .cake and inner elements: keep small defaults; original CSS will enhance */
-    .cake { display:none; position:absolute; left:50%; transform:translateX(-50%); bottom:100px; z-index:200; }
-
-    /* message paragraphs area (story) */
-    .message { display:none; position:absolute; inset:80px 60px 60px 60px; overflow:auto; z-index:250; color:#BF4136; }
-    .message p { display:none; font-size:20px; line-height:1.6; color:#C4515C; font-weight:bold; }
-
-    /* small control-panel at bottom (optional) */
-    .control-panel { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 4000; }
+    /* hide page scrollbar inside iframe */
+    ::-webkit-scrollbar { display:none; }
   </style>
 </head>
 <body>
+  <div class="wrap">
+    <div class="stage">
+      <!-- keep existing HTML structure used by the Ayush scripts:
+           images with ids b1..b7, balloon-border etc. -->
+      <!-- Balloon border / frame -->
+      <img src="Balloon-Border.png" class="balloon-border" alt="" />
 
-  <!-- loading spinner (kept from original) -->
-  <div class="loading">Loading…</div>
+      <!-- example balloon elements (place exactly as the original project expects them) -->
+      <div id="b1" class="balloons" style="left:10%; top:10%;"></div>
+      <div id="b2" class="balloons" style="left:22%; top:10%;"></div>
+      <div id="b3" class="balloons" style="left:34%; top:10%;"></div>
+      <div id="b4" class="balloons" style="left:46%; top:10%;"></div>
+      <div id="b5" class="balloons" style="left:58%; top:10%;"></div>
+      <div id="b6" class="balloons" style="left:70%; top:10%;"></div>
+      <div id="b7" class="balloons" style="left:82%; top:10%;"></div>
 
-  <div class="container">
+      <!-- overlay name DIV which will be centered inside each balloon via CSS + JS -->
+      <div class="balloon-name" id="balloon-central-name" aria-hidden="true">I</div>
 
-    <!-- DRAMATIC AREA: initial black fullscreen with centered TURN ON -->
-    <div class="dramatic-area" id="dramatic">
-      <div>
-        <button id="turn_on">TURN ON LIGHTS</button>
-      </div>
+      <!-- cake and other elements (keep the original HTML if you have them) -->
+      <div class="cake"></div>
+
     </div>
 
-    <!-- THE ACTUAL ANIMATION STAGE (hidden until user starts) -->
-    <div class="animation-stage">
+    <!-- control panel - bottom centre inside iframe -->
+    <div class="control-panel" role="group" aria-label="Animation controls">
+      <button id="turn_on" class="btn">Turn on lights</button>
+      <button id="play" class="btn">Play music</button>
+      <button id="bannar_coming" class="btn">Bring the cake</button>
+      <button id="balloons_flying" class="btn">Fly with balloons</button>
+      <button id="cake_fadein" class="btn">Show cake</button>
+      <button id="light_candle" class="btn">Light candle</button>
+      <button id="wish_message" class="btn">Show the wish</button>
+    </div>
+  </div>
 
-      <!-- top decorative balloon-border image -->
-      <img src="Balloon-Border.png" class="balloon-border" alt="balloon border" />
+  <!-- audio (animation-specific) -->
+  <audio class="song" src="bgm-animations.mp3" preload="auto"></audio>
 
-      <!-- bulbs / lights (images expected in the folder) -->
-      <div class="bulb-holder" style="position:absolute; top:8px; left:50%; transform:translateX(-50%); z-index:50;">
-        <div id="bulb_yellow" class="bulb" style="display:inline-block; margin-right:6px;"></div>
-        <div id="bulb_red" class="bulb" style="display:inline-block; margin-right:6px;"></div>
-        <div id="bulb_blue" class="bulb" style="display:inline-block; margin-right:6px;"></div>
-        <div id="bulb_green" class="bulb" style="display:inline-block; margin-right:6px;"></div>
-        <div id="bulb_pink" class="bulb" style="display:inline-block; margin-right:6px;"></div>
-        <div id="bulb_orange" class="bulb" style="display:inline-block;"></div>
-      </div>
-
-      <!-- 7 balloons: each has one letter (ISHAANI) as requested -->
-      <div id="b1" class="balloons" style="background-image:url('b1.png');"></div>
-      <div id="b2" class="balloons" style="background-image:url('b2.png');"></div>
-      <div id="b3" class="balloons" style="background-image:url('b3.png');"></div>
-      <div id="b4" class="balloons" style="background-image:url('b4.png');"></div>
-      <div id="b5" class="balloons" style="background-image:url('b5.png');"></div>
-      <div id="b6" class="balloons" style="background-image:url('b6.png');"></div>
-      <div id="b7" class="balloons" style="background-image:url('b7.png');"></div>
-
-      <!-- insert letter overlays inside each balloon (JS will show them when necessary) -->
-      <div class="balloon-names-wrapper" style="display:none;">
-        <div id="bn1" class="balloon-name">I</div>
-        <div id="bn2" class="balloon-name">S</div>
-        <div id="bn3" class="balloon-name">H</div>
-        <div id="bn4" class="balloon-name">A</div>
-        <div id="bn5" class="balloon-name">A</div>
-        <div id="bn6" class="balloon-name">N</div>
-        <div id="bn7" class="balloon-name">I</div>
-      </div>
-
-      <!-- banner, cake, candle, fire — keep expected markup so original CSS works -->
-      <div class="bannar" style="position:absolute; top:10px; left:50%; transform:translateX(-50%); z-index:40;">
-        <img src="banner" alt="banner" />
-      </div>
-
-      <div class="balloon-border" style="display:none;"></div>
-
-      <div class="cake" aria-hidden="true">
-        <div class="velas"></div>
-        <div class="fuego"></div>
-        <div class="cobertura"></div>
-        <div class="bizcocho"></div>
-      </div>
-
-      <!-- message paragraphs (story). Keep many; JS will show them one by one. -->
-      <div class="message">
-        <p>When you walked into my life everything quietly changed. I noticed the small things about you first.</p>
-        <p>We had random talks that turned into hours. I would wait to see your name pop up on my screen.</p>
-        <p>We argued. We made up. We chose each other again and again.</p>
-        <p>Today is another year of you — and I’m very grateful I get to say happy birthday up close.</p>
-      </div>
-
-      <!-- control-panel (these buttons appear according to sequence — original JS reveals them) -->
-      <div class="control-panel">
-        <button id="play" style="display:none;">PLAY</button>
-        <button id="bannar_coming" style="display:none;">BRING THE BANNER</button>
-        <button id="balloons_flying" style="display:none;">FLY THE BALLOONS</button>
-        <button id="cake_fadein" style="display:none;">BRING THE CAKE</button>
-        <button id="light_candle" style="display:none;">LIGHT THE CANDLE</button>
-        <button id="wish_message" style="display:none;">SHOW THE WISH</button>
-        <button id="story" style="display:none;">READ THE STORY</button>
-      </div>
-
-    </div> <!-- /.animation-stage -->
-
-  </div> <!-- /.container -->
-
-  <!-- animation audio: update filename if your file differs -->
-  <audio class="song" src="audio/bgm-animation.mp3" preload="auto"></audio>
-<!-- add jQuery before effect.js so all the $(...) handlers run -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="effect.js"></script>
-
-  <!-- original effect script (we already replaced with the improved version) -->
+  <!-- include jQuery first (required by effect.js) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- original animation scripts from Ayush -->
   <script src="effect.js"></script>
 
   <script>
-    /*
-      Quick runtime hookup: move single-letter overlays into each balloon so
-      they sit centered on the balloon element. This helps if CSS wants the
-      .balloon-name inside the balloon DOM node. We keep the small JS here
-      for robust placement, but heavy behaviour remains in effect.js.
-    */
-    (function attachNames() {
-      // ids b1..b7 and bn1..bn7 must exist
-      for (var i = 1; i <= 7; i++) {
-        var b = document.getElementById('b' + i);
-        var n = document.getElementById('bn' + i);
-        if (b && n) {
-          // append the overlay into the balloon element
-          b.appendChild(n);
-          // show once appended only when the script triggers (effect.js will toggle .show)
-          n.classList.remove('show');
-        }
+    // Make sure effects.js buttons are wired exactly like original project.
+    // When the final "wish_message" step is done, send a message to parent
+    // so the React app can advance to the "main" stage.
+    (function () {
+      const wishBtn = document.getElementById('wish_message');
+      if (wishBtn) {
+        wishBtn.addEventListener('click', function () {
+          // Wait a bit so the animation completes visually, then post to parent
+          setTimeout(() => {
+            try {
+              parent.postMessage({ type: 'animation-done' }, '*');
+            } catch (e) {
+              // ignore
+            }
+          }, 900); // small delay to let final transitions finish
+        });
       }
-      // ensure dramatic area covers viewport until user clicks TURN ON
-      document.getElementById('dramatic').style.display = 'flex';
+
+      // Fix: center single-letter per balloon behavior.
+      // If you want separate letters in different balloons, effect.js should create them.
+      // But to center the existing overlay text inside each balloon element, do:
+      function centerBalloonNames() {
+        const names = document.querySelectorAll('.balloons');
+        names.forEach((el) => {
+          // create a small centered span per balloon if missing
+          if (!el.querySelector('.balloon-inner-name')) {
+            const s = document.createElement('div');
+            s.className = 'balloon-inner-name';
+            s.style.position = 'absolute';
+            s.style.top = '52%';
+            s.style.left = '50%';
+            s.style.transform = 'translate(-50%, -50%)';
+            s.style.pointerEvents = 'none';
+            s.style.fontWeight = '700';
+            s.style.color = '#8a2b2b';
+            s.innerText = el.dataset.letter || 'I';
+            el.appendChild(s);
+          }
+        });
+      }
+      // run after DOM load
+      document.addEventListener('DOMContentLoaded', centerBalloonNames);
     })();
   </script>
 </body>

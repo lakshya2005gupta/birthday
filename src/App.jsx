@@ -223,10 +223,10 @@ export default function App() {
             <div className="animation-frame-wrap">
               {/* IMPORTANT: folder is /animation, NOT /animations */}
               <iframe
-                src="/animation/index.html" 
-                className="dramatic-frame"
-                title="Birthday animation"
-                
+                title="animation"
+                src="/animation/index.html"
+                className="animation-iframe"
+                style={{ width: '100%', height: '100vh', border: 'none' }}
               />
             </div>
 
